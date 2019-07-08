@@ -1,10 +1,9 @@
 // Testing the library
 
-#include <linear_sequence.h>
-#include <iostream>
+#include <CppUTest/CommandLineTestRunner.h>
 
 int main()
 {
-    return 0;
+    return CommandLineTestRunner::RunAllTests(ac, av);
 }
 
