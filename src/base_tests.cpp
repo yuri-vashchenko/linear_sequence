@@ -43,6 +43,7 @@ TEST(BasicTests, AddFrontElement)
     CHECK_TEXT(LSQ_IsIteratorDereferencable(iterator), "Created iterator is not dereferencable");
     // Check value
     CHECK_EQUAL(element, *LSQ_DereferenceIterator(iterator));
+    LSQ_DestroyIterator(iterator);
 }
 
 TEST(BasicTests, AddRearElement)
@@ -60,5 +61,6 @@ TEST(BasicTests, AddRearElement)
     CHECK_TEXT(LSQ_IsIteratorDereferencable(iterator), "Created iterator is not dereferencable");
     // Check value
     CHECK_EQUAL(element, *LSQ_DereferenceIterator(iterator));
+    LSQ_DestroyIterator(iterator);
 }
 

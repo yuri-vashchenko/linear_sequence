@@ -38,7 +38,7 @@ iteratorT* make_iterator(containerT* handle)
     return iterator;
 }
 
-LSQ_IteratorT make_node(LSQ_BaseTypeT value)
+nodeT* make_node(LSQ_BaseTypeT value)
 {
     nodeT* node = (nodeT*)malloc(sizeof(nodeT));
     if (node)
@@ -47,7 +47,7 @@ LSQ_IteratorT make_node(LSQ_BaseTypeT value)
         node->next = NULL;
         node->previous = NULL;
     }
-    return (LSQ_IteratorT)node;
+    return node;
 }
 
 LSQ_HandleT LSQ_CreateSequence(void)
@@ -56,8 +56,8 @@ LSQ_HandleT LSQ_CreateSequence(void)
     handle = (containerT*)malloc(sizeof(containerT));
     if (handle) {
         handle->count = 0;
-        handle->prefirst = (nodeT *) make_node(0);
-        handle->end = (nodeT *) make_node(0);
+        handle->prefirst = make_node(0);
+        handle->end = make_node(0);
         handle->prefirst->next = handle->end;
         handle->end->previous = handle->prefirst;
     }
@@ -66,6 +66,12 @@ LSQ_HandleT LSQ_CreateSequence(void)
 
 void LSQ_DestroySequence(LSQ_HandleT handle)
 {
+    // delete all elements
+    containerT* container = (containerT*)handle;
+    while(container->count > 0)
+    {
+        LSQ_DeleteFrontElement(handle);
+    }
     free(handle);
 }
 
@@ -135,7 +141,7 @@ LSQ_IteratorT LSQ_GetFrontElement(LSQ_HandleT handle)
 {
     iteratorT* it = make_iterator(handle);
     containerT* container = (containerT*)handle;
-    it->node = container->prefirst;
+    it->node = container->prefirst->next;
     return it;
 }
 
@@ -177,6 +183,10 @@ void LSQ_RewindOneElement(LSQ_IteratorT iterator)
 /* Функция, перемещающая итератор на заданное смещение со знаком */
 void LSQ_ShiftPosition(LSQ_IteratorT iterator, LSQ_IntegerIndexT shift)
 {
+    if (shift == 0)
+    {
+        return;
+    }
     iteratorT* it = (iteratorT*)iterator;
     if (shift >= 0)
     {
@@ -187,7 +197,7 @@ void LSQ_ShiftPosition(LSQ_IteratorT iterator, LSQ_IntegerIndexT shift)
         }
     }
     else
-        {
+    {
         while (shift < 0 && it->node->previous != it->handle->prefirst)
         {
             it->node = it->node->previous;
@@ -233,14 +243,16 @@ void LSQ_InsertFrontElement(LSQ_HandleT handle, LSQ_BaseTypeT element)
     if (handle)
     {
         containerT* container = (containerT*)handle;
-        nodeT* el;
-        nodeT* tmp;
-        el->value = element;
-        tmp = container->prefirst->next;
-        container->prefirst->next = el;
-        el->next = tmp;
-        el->previous = container->prefirst;
-        free(tmp);
+        if (container != NULL)
+        {
+            nodeT* el = make_node(element);
+            nodeT* tmp = container->prefirst->next;
+            container->prefirst->next = el;
+            el->next = tmp;
+            el->previous = container->prefirst;
+            tmp->previous = el;
+            container->count++;
+        }
     }
 }
 /* Функция, добавляющая элемент в конец контейнера */
@@ -249,14 +261,16 @@ void LSQ_InsertRearElement(LSQ_HandleT handle, LSQ_BaseTypeT element)
     if (handle)
     {
         containerT* container = (containerT*)handle;
-        nodeT* el;
-        nodeT* tmp;
-        el->value = element;
-        tmp = container->end->previous;
-        container->end->previous = el;
-        el->previous = tmp;
-        el->next = container->end;
-        free(tmp);
+        if (container != NULL)
+        {
+            nodeT* el = make_node(element);
+            nodeT* tmp = container->end->previous;
+            container->end->previous = el;
+            el->previous = tmp;
+            el->next = container->end;
+            tmp->next = el;
+            container->count++;
+        }
     }
 }
 /* Функция, добавляющая элемент в контейнер на позицию, указываемую в данный момент итератором. Элемент, на который  *
@@ -266,16 +280,17 @@ void LSQ_InsertElementBeforeGiven(LSQ_IteratorT iterator, LSQ_BaseTypeT newEleme
     if (iterator)
     {
         iteratorT* it = (iteratorT*)iterator;
-        nodeT* el;
-        el->value = newElement;
-        nodeT* pr = it->node->previous;
-        it->node->previous = el;
-        el->next = it->node;
-        pr->next = el;
-        el->previous = pr;
-        free(pr);
+        if (it->node != it->handle->prefirst)
+        {
+            nodeT* el = make_node(newElement);
+            nodeT* pr = it->node->previous;
+            it->node->previous = el;
+            el->next = it->node;
+            pr->next = el;
+            el->previous = pr;
+            it->handle->count++;
+        }
     }
-
 }
 
 /* Функция, удаляющая первый элемент контейнера */
@@ -286,6 +301,7 @@ void LSQ_DeleteFrontElement(LSQ_HandleT handle)
         containerT* container = (containerT*)handle;
         nodeT* first = container->prefirst->next;
         delete_node(first);
+        container->count--;
     }
 
 }
@@ -297,6 +313,7 @@ void LSQ_DeleteRearElement(LSQ_HandleT handle)
         containerT* container = (containerT*)handle;
         nodeT* last = container->end->previous;
         delete_node(last);
+        container->count--;
     }
 
 }
@@ -304,8 +321,17 @@ void LSQ_DeleteRearElement(LSQ_HandleT handle)
  * одну позицию в сторону начала.                                                                                    */
 void LSQ_DeleteGivenElement(LSQ_IteratorT iterator)
 {
-    iteratorT* it = (iteratorT*)iterator;
-    nodeT* node = it->node;
-    it->node = it->node->next;
-    delete_node(node);
+    if (iterator != NULL)
+    {
+        iteratorT* it = (iteratorT*)iterator;
+        if (it->node != it->handle->prefirst &&
+            it->node != it->handle->end)
+        {
+            nodeT* node = it->node;
+            it->node = it->node->next;
+            delete_node(node);
+            it->handle->count--;
+        }
+    }
 }
+
