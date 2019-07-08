@@ -7,7 +7,7 @@ extern "C"
 
 TEST_GROUP(BasicTests)
 {
-    LSQ_HangleT handle = NULL;
+    LSQ_HandleT handle = NULL;
     void setup()
     {
         handle = LSQ_CreateSequence();
