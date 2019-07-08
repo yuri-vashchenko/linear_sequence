@@ -1,6 +1,7 @@
 // Testing the library
 
-#include "linear_sequence.h"
+#include <linear_sequence.h>
+#include <iostream>
 
 int main()
 {
