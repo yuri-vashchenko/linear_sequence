@@ -13,6 +13,7 @@ set(TEST_FILES
 )
 
 add_executable(${PROJECT_NAME} ${TEST_FILES})
-target_link_libraries(${PROJECT_NAME} linear_sequence_lib)
+target_link_libraries(${PROJECT_NAME} linear_sequence_lib CppUTest)
+
 target_include_directories(${PROJECT_NAME} PUBLIC lib)
 

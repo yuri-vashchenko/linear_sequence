@@ -1,5 +1,9 @@
 #include <CppUTest/TestHarness.h>
+
+extern "C"
+{
 #include <linear_sequence.h>
+}
 
 TEST_GROUP(BasicTests)
 {
@@ -7,6 +11,6 @@ TEST_GROUP(BasicTests)
 
 TEST(BasicTests, CreateContainer)
 {
-    LSQ_HandleT handle LSQ_CreateSequence();
+    LSQ_HandleT handle = LSQ_CreateSequence();
     CHECK_TEXT(handle != NULL, "LSQ_CreateSequence returned NULL");
 }

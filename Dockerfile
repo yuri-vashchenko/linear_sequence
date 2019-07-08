@@ -9,3 +9,4 @@ RUN apt update && apt install -y --no-install-recommends \
 ADD . /code
 WORKDIR /code
 RUN ./build.sh
+RUN /code/build/linear_sequence_test
