@@ -10,6 +10,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(TEST_FILES
     src/main.cpp
     src/base_tests.cpp
+        src/iterator_tests.cpp
 )
 
 add_executable(${PROJECT_NAME} ${TEST_FILES})
