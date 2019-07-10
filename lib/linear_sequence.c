@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include "linear_sequence.h"
 
-typedef struct node nodeT;
-
 struct node
 {
     LSQ_BaseTypeT value;
-    nodeT* next;
-    nodeT* previous;
+    struct node* next;
+    struct node* previous;
 };
+
+typedef struct node nodeT;
 
 struct container
 {
@@ -82,11 +82,11 @@ LSQ_IntegerIndexT LSQ_GetSize(LSQ_HandleT handle)
 /* Р¤СѓРЅРєС†РёСЏ, РѕРїСЂРµРґРµР»СЏСЋС‰Р°СЏ, РјРѕР¶РµС‚ Р»Рё РґР°РЅРЅС‹Р№ РёС‚РµСЂР°С‚РѕСЂ Р±С‹С‚СЊ СЂР°Р·С‹РјРµРЅРѕРІР°РЅ */
 int LSQ_IsIteratorDereferencable(LSQ_IteratorT iterator)
 {
-    if(iterator != NULL) {
+    if (iterator != NULL) {
         iteratorT* it = (iteratorT*)iterator;
         nodeT* node = it->node;
-        if(node != NULL) {
-            if((node->previous != NULL) && (node->next != NULL)) {
+        if (node != NULL) {
+            if ((node->previous != NULL) && (node->next != NULL)) {
                 return 1;
             }
         }
@@ -99,7 +99,10 @@ int LSQ_IsIteratorPastRear(LSQ_IteratorT iterator)
 {
     if (iterator) {
         iteratorT* it = (iteratorT*)iterator;
-        return it->node == it->handle->end;
+        if (it->handle != NULL)
+        {
+            return it->node == it->handle->end;
+        }
     }
     return 0;
 }
@@ -109,7 +112,10 @@ int LSQ_IsIteratorBeforeFirst(LSQ_IteratorT iterator)
 {
     if (iterator){
         iteratorT* it = (iteratorT*)iterator;
-        return it->node == it->handle->prefirst;
+        if (it->handle != NULL)
+        {
+            return it->node == it->handle->prefirst;
+        }
     }
     return 0;
 }
@@ -131,20 +137,22 @@ LSQ_IteratorT LSQ_GetElementByIndex(LSQ_HandleT handle, LSQ_IntegerIndexT index)
 {
     if (handle) {
         iteratorT* it = malloc(sizeof(iteratorT));
-        it->handle = handle;
-        containerT* container = (containerT*)handle;
-
-        it->node = container->prefirst->next;
-
-        while(!LSQ_IsIteratorPastRear(it) && index > 0)
+        if (it != NULL)
         {
-            LSQ_AdvanceOneElement(it);
-            index--;
+            containerT* container = (containerT*)handle;
+            it->handle = container;
+
+            it->node = container->prefirst->next;
+
+            while (!LSQ_IsIteratorPastRear(it) && (index > 0))
+            {
+                LSQ_AdvanceOneElement(it);
+                index--;
+            }
         }
         return it;
     }
-    return LSQ_HandleInvalid;
-
+    return NULL;
 }
 
 /* Р¤СѓРЅРєС†РёСЏ, РІРѕР·РІСЂР°С‰Р°СЋС‰Р°СЏ РёС‚РµСЂР°С‚РѕСЂ, СЃСЃС‹Р»Р°СЋС‰РёР№СЃСЏ РЅР° РїРµСЂРІС‹Р№ СЌР»РµРјРµРЅС‚ РєРѕРЅС‚РµР№РЅРµСЂР° */
@@ -152,9 +160,12 @@ LSQ_IteratorT LSQ_GetFrontElement(LSQ_HandleT handle)
 {
     if (handle) {
         iteratorT* it = malloc(sizeof(iteratorT));
-        it->handle = handle;
-        containerT* container = (containerT*)handle;
-        it->node = container->prefirst->next;
+        if (it != NULL)
+        {
+            containerT* container = (containerT*)handle;
+            it->handle = container;
+            it->node = container->prefirst->next;
+        }
         return it;
     }
     return LSQ_HandleInvalid;
@@ -165,9 +176,12 @@ LSQ_IteratorT LSQ_GetPastRearElement(LSQ_HandleT handle)
 {
     if (handle) {
         iteratorT* it = malloc(sizeof(iteratorT));
-        it->handle = handle;
-        containerT* container = (containerT*)handle;
-        it->node = container->end;
+        if (it != NULL)
+        {
+            containerT* container = (containerT*)handle;
+            it->handle = container;
+            it->node = container->end;
+        }
         return it;
     }
     return LSQ_HandleInvalid;
@@ -177,7 +191,8 @@ LSQ_IteratorT LSQ_GetPastRearElement(LSQ_HandleT handle)
 void LSQ_DestroyIterator(LSQ_IteratorT iterator)
 {
     if (iterator){
-        free(iterator);
+        iteratorT* it = (iteratorT*)iterator;
+        free(it);
     }
 }
 
@@ -186,7 +201,9 @@ void LSQ_AdvanceOneElement(LSQ_IteratorT iterator)
 {
     if (iterator) {
         iteratorT* it = (iteratorT*)iterator;
-        it->node = it->node->next;
+        if (it->node != it->handle->end) {
+            it->node = it->node->next;
+        }
     }
 }
 
@@ -195,7 +212,9 @@ void LSQ_RewindOneElement(LSQ_IteratorT iterator)
 {
     if (iterator) {
         iteratorT* it = (iteratorT*)iterator;
-        it->node = it->node->previous;
+        if (it->node != it->handle->prefirst) {
+            it->node = it->node->previous;
+        }
     }
 }
 
@@ -205,6 +224,11 @@ void LSQ_ShiftPosition(LSQ_IteratorT iterator, LSQ_IntegerIndexT shift)
     if (iterator) {
 
         iteratorT* it = (iteratorT*)iterator;
+
+        if (shift == 0)
+        {
+            return;
+        }
 
         if (shift > 0)
         {
@@ -230,13 +254,25 @@ void LSQ_SetPosition(LSQ_IteratorT iterator, LSQ_IntegerIndexT pos)
 {
     if (iterator)
     {
-        iteratorT* it = (iteratorT*)iterator;
-        it->node = it->handle->prefirst->next;
-
-        while (!LSQ_IsIteratorPastRear(it) && pos > 0)
+        if (pos < 0)
         {
-            pos--;
-            LSQ_AdvanceOneElement(it);
+            return;
+        }
+        iteratorT* it = (iteratorT*)iterator;
+        it->node = it->handle->end;
+
+        if (it->handle != NULL)
+        {
+            LSQ_IntegerIndexT size = LSQ_GetSize(it->handle);
+            if (size == 0 || pos > size)
+            {
+                return;
+            }
+            if (it->handle->prefirst != NULL)
+            {
+                it->node = it->handle->prefirst->next;
+                LSQ_ShiftPosition(it, pos);
+            }
         }
     }
 }
@@ -247,8 +283,11 @@ void LSQ_InsertFrontElement(LSQ_HandleT handle, LSQ_BaseTypeT element)
     if (handle)
     {
         LSQ_IteratorT iterator = LSQ_GetFrontElement(handle);
-        LSQ_InsertElementBeforeGiven(iterator, element);
-        LSQ_DestroyIterator(iterator);
+        if (iterator != NULL)
+        {
+            LSQ_InsertElementBeforeGiven(iterator, element);
+            LSQ_DestroyIterator(iterator);
+        }
     }
 }
 /* Р¤СѓРЅРєС†РёСЏ, РґРѕР±Р°РІР»СЏСЋС‰Р°СЏ СЌР»РµРјРµРЅС‚ РІ РєРѕРЅРµС† РєРѕРЅС‚РµР№РЅРµСЂР° */
@@ -257,8 +296,11 @@ void LSQ_InsertRearElement(LSQ_HandleT handle, LSQ_BaseTypeT element)
     if (handle)
     {
         LSQ_IteratorT iterator = LSQ_GetPastRearElement(handle);
-        LSQ_InsertElementBeforeGiven(iterator, element);
-        LSQ_DestroyIterator(iterator);
+        if (iterator != NULL)
+        {
+            LSQ_InsertElementBeforeGiven(iterator, element);
+            LSQ_DestroyIterator(iterator);
+        }
     }
 }
 /* Р¤СѓРЅРєС†РёСЏ, РґРѕР±Р°РІР»СЏСЋС‰Р°СЏ СЌР»РµРјРµРЅС‚ РІ РєРѕРЅС‚РµР№РЅРµСЂ РЅР° РїРѕР·РёС†РёСЋ, СѓРєР°Р·С‹РІР°РµРјСѓСЋ РІ РґР°РЅРЅС‹Р№ РјРѕРјРµРЅС‚ РёС‚РµСЂР°С‚РѕСЂРѕРј. Р­Р»РµРјРµРЅС‚, РЅР° РєРѕС‚РѕСЂС‹Р№  *
@@ -274,8 +316,11 @@ void LSQ_InsertElementBeforeGiven(LSQ_IteratorT iterator, LSQ_BaseTypeT newEleme
         el->next = it->node;
         it->node->previous->next = el;
         it->node->previous = el;
-        it->node = el;
-        it->handle->count++;
+        /*it->node = el;*/
+        if (it->handle != NULL)
+        {
+            it->handle->count++;
+        }
     }
 }
 
@@ -284,7 +329,12 @@ void LSQ_DeleteFrontElement(LSQ_HandleT handle)
 {
     if (handle)
     {
-        LSQ_DeleteGivenElement(LSQ_GetFrontElement(handle));
+        LSQ_IteratorT iterator = LSQ_GetFrontElement(handle);
+        if (iterator != NULL)
+        {
+            LSQ_DeleteGivenElement(iterator);
+            LSQ_DestroyIterator(iterator);
+        }
     }
 
 }
@@ -293,24 +343,30 @@ void LSQ_DeleteRearElement(LSQ_HandleT handle)
 {
     if (handle)
     {
-        iteratorT* it = LSQ_GetPastRearElement(handle);
-        LSQ_RewindOneElement(it);
-        LSQ_DeleteGivenElement(it);
+        LSQ_IteratorT iterator = LSQ_GetPastRearElement(handle);
+        if (iterator != NULL)
+        {
+            LSQ_RewindOneElement(iterator);
+            LSQ_DeleteGivenElement(iterator);
+            LSQ_DestroyIterator(iterator);
+        }
     }
-
 }
 /* Р¤СѓРЅРєС†РёСЏ, СѓРґР°Р»СЏСЋС‰Р°СЏ СЌР»РµРјРµРЅС‚ РєРѕРЅС‚РµР№РЅРµСЂР°, СѓРєР°Р·С‹РІР°РµРјС‹Р№ Р·Р°РґР°РЅРЅС‹Рј РёС‚РµСЂР°С‚РѕСЂРѕРј. Р’СЃРµ РїРѕСЃР»РµРґСѓСЋС‰РёРµ СЌР»РµРјРµРЅС‚С‹ СЃРјРµС‰Р°СЋС‚СЃСЏ РЅР°     *
  * РѕРґРЅСѓ РїРѕР·РёС†РёСЋ РІ СЃС‚РѕСЂРѕРЅСѓ РЅР°С‡Р°Р»Р°.                                                                                    */
 void LSQ_DeleteGivenElement(LSQ_IteratorT iterator)
 {
-    if (LSQ_DereferenceIterator(iterator))
+    if (LSQ_IsIteratorDereferencable(iterator))
     {
         iteratorT* it = (iteratorT*)iterator;
         nodeT* node = it->node;
+        it->node = it->node->next;
         node->previous->next = node->next;
         node->next->previous = node->previous;
-        it->node = it->node->previous;
-        it->handle->count--;
+        if (it->handle != NULL)
+        {
+            it->handle->count--;
+        }
         free(node);
     }
 }
